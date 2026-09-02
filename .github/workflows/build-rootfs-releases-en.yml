@@ -7,18 +7,27 @@ on:
         description: 'Select the distribution to build'
         required: true
         type: choice
-        default: 'Debian-13-KDE'
+        default: 'Debian-13'
         options:
-          - 'Debian-13-KDE'
-          - 'Ubuntu-24-KDE'
-          - 'Ubuntu-25-KDE'
-          - 'Ubuntu-26-KDE'
-          - 'Fedora-43-KDE'
-          - 'Fedora-44-KDE'
-          - 'Arch-KDE'
+          - 'Debian-13'
+          - 'Ubuntu-24'
+          - 'Ubuntu-25'
+          - 'Ubuntu-26'
+          - 'Fedora-43'
+          - 'Fedora-44'
+          - 'Arch'
           - 'all'
           - 'all-wayland'
           - 'all-niri-noctalia'
+      release_mode:
+        description: 'Release mode (overwrite-release=rolling rootfs-dev, release=versioned Release, test=build artifacts only)'
+        required: true
+        type: choice
+        default: 'overwrite-release'
+        options:
+          - 'overwrite-release'
+          - 'release'
+          - 'test'
       override_build_id:
         description: 'Override Build ID (e.g. v20260828-053144)'
         required: false
@@ -154,7 +163,11 @@ jobs:
           
           case "$TARGET" in
             all)
-              TEMPLATES=$(ls *.Dockerfile | sed 's/\.Dockerfile//' | jq -R -s -c 'split("\n")[:-1]')
+              if [ "$BUILD_KDE" = "niri-noctalia" ]; then
+                TEMPLATES=$(jq -n -c '["Debian-13-NiriNoctalia","Ubuntu-26-NiriNoctalia","Fedora-44-NiriNoctalia","Arch-NiriNoctalia"]')
+              else
+                TEMPLATES=$(jq -n -c '["Debian-13-KDE","Ubuntu-24-KDE","Ubuntu-25-KDE","Ubuntu-26-KDE","Fedora-43-KDE","Fedora-44-KDE","Arch-KDE"]')
+              fi
               WAYLAND_PACKAGE_TARGET="all"
               ;;
             all-wayland)
@@ -171,43 +184,57 @@ jobs:
               ENABLE_ANLAND_KDE="true"
               WAYLAND_PACKAGE_TARGET="all"
               ;;
-            Debian-13-KDE)
+            Debian-13)
               if [ "$BUILD_KDE" = "niri-noctalia" ]; then
                 TEMPLATES=$(jq -n -c '["Debian-13-NiriNoctalia"]')
               else
-                TEMPLATES=$(jq -n -c --arg t "$TARGET" '[$t]')
+                TEMPLATES=$(jq -n -c '["Debian-13-KDE"]')
               fi
               WAYLAND_PACKAGE_TARGET="Debian13"
               ;;
-            Ubuntu-26-KDE)
+            Ubuntu-24)
+              if [ "$BUILD_KDE" = "niri-noctalia" ]; then
+                echo "Error: Ubuntu-24 currently does not support niri-noctalia mode (please use Ubuntu-26)" >&2
+                exit 1
+              fi
+              TEMPLATES=$(jq -n -c '["Ubuntu-24-KDE"]')
+              ;;
+            Ubuntu-25)
+              if [ "$BUILD_KDE" = "niri-noctalia" ]; then
+                echo "Error: Ubuntu-25 currently does not support niri-noctalia mode (please use Ubuntu-26)" >&2
+                exit 1
+              fi
+              TEMPLATES=$(jq -n -c '["Ubuntu-25-KDE"]')
+              ;;
+            Ubuntu-26)
               if [ "$BUILD_KDE" = "niri-noctalia" ]; then
                 TEMPLATES=$(jq -n -c '["Ubuntu-26-NiriNoctalia"]')
               else
-                TEMPLATES=$(jq -n -c --arg t "$TARGET" '[$t]')
+                TEMPLATES=$(jq -n -c '["Ubuntu-26-KDE"]')
               fi
               WAYLAND_PACKAGE_TARGET="ubuntu2604"
               ;;
-            Fedora-43-KDE)
+            Fedora-43)
               if [ "$BUILD_KDE" = "niri-noctalia" ]; then
-                echo "Error: Fedora-43 currently does not support niri-noctalia mode (please use Fedora-44-KDE)" >&2
+                echo "Error: Fedora-43 currently does not support niri-noctalia mode (please use Fedora-44)" >&2
                 exit 1
               fi
-              TEMPLATES=$(jq -n -c --arg t "$TARGET" '[$t]')
+              TEMPLATES=$(jq -n -c '["Fedora-43-KDE"]')
               WAYLAND_PACKAGE_TARGET="Fedora43"
               ;;
-            Fedora-44-KDE)
+            Fedora-44)
               if [ "$BUILD_KDE" = "niri-noctalia" ]; then
                 TEMPLATES=$(jq -n -c '["Fedora-44-NiriNoctalia"]')
               else
-                TEMPLATES=$(jq -n -c --arg t "$TARGET" '[$t]')
+                TEMPLATES=$(jq -n -c '["Fedora-44-KDE"]')
               fi
               WAYLAND_PACKAGE_TARGET="Fedora44"
               ;;
-            Arch-KDE)
+            Arch)
               if [ "$BUILD_KDE" = "niri-noctalia" ]; then
                 TEMPLATES=$(jq -n -c '["Arch-NiriNoctalia"]')
               else
-                TEMPLATES=$(jq -n -c --arg t "$TARGET" '[$t]')
+                TEMPLATES=$(jq -n -c '["Arch-KDE"]')
               fi
               WAYLAND_PACKAGE_TARGET="Arch"
               ;;
@@ -216,13 +243,13 @@ jobs:
               ;;
           esac
 
-          if [ "$BUILD_KDE" = "mobile" ] && [ "$TARGET" != "Ubuntu-26-KDE" ] && [ "$TARGET" != "Debian-13-KDE" ] && [ "$TARGET" != "Fedora-43-KDE" ] && [ "$TARGET" != "Fedora-44-KDE" ] && [ "$TARGET" != "Arch-KDE" ] && [ "$TARGET" != "all-wayland" ]; then
-            echo "Error: KDE mobile edition is currently supported on Ubuntu-26-KDE, Debian-13-KDE, Fedora-43-KDE, Fedora-44-KDE, Arch-KDE, all-wayland" >&2
+          if [ "$BUILD_KDE" = "mobile" ] && [ "$TARGET" != "Ubuntu-26" ] && [ "$TARGET" != "Debian-13" ] && [ "$TARGET" != "Fedora-43" ] && [ "$TARGET" != "Fedora-44" ] && [ "$TARGET" != "Arch" ] && [ "$TARGET" != "all-wayland" ] && [ "$TARGET" != "all" ]; then
+            echo "Error: KDE mobile edition is currently supported on Ubuntu-26, Debian-13, Fedora-43, Fedora-44, Arch, all-wayland, all" >&2
             exit 1
           fi
 
-          if [ "$BUILD_KDE" = "niri-noctalia" ] && [ "$TARGET" != "Ubuntu-26-KDE" ] && [ "$TARGET" != "Debian-13-KDE" ] && [ "$TARGET" != "Fedora-44-KDE" ] && [ "$TARGET" != "Arch-KDE" ] && [ "$TARGET" != "all-wayland" ] && [ "$TARGET" != "all-niri-noctalia" ]; then
-            echo "Error: niri-noctalia is currently supported on Ubuntu-26-KDE, Debian-13-KDE, Fedora-44-KDE, Arch-KDE, all-wayland, all-niri-noctalia" >&2
+          if [ "$BUILD_KDE" = "niri-noctalia" ] && [ "$TARGET" != "Ubuntu-26" ] && [ "$TARGET" != "Debian-13" ] && [ "$TARGET" != "Fedora-44" ] && [ "$TARGET" != "Arch" ] && [ "$TARGET" != "all" ] && [ "$TARGET" != "all-wayland" ] && [ "$TARGET" != "all-niri-noctalia" ]; then
+            echo "Error: niri-noctalia is currently supported on Ubuntu-26, Debian-13, Fedora-44, Arch, all, all-wayland, all-niri-noctalia" >&2
             exit 1
           fi
 
@@ -242,7 +269,7 @@ jobs:
           fi
 
           if [ "$BUILD_WAYLAND_PACKAGES" = "true" ] && [ -z "$WAYLAND_PACKAGE_TARGET" ]; then
-            echo "Error: KDE Wayland precompiled packages are only available for Debian-13-KDE, Ubuntu-26-KDE, Fedora-43-KDE, Fedora-44-KDE, Arch-KDE, all, or all-wayland" >&2
+            echo "Error: KDE Wayland precompiled packages are only available for Debian-13, Ubuntu-26, Fedora-43, Fedora-44, Arch, all, or all-wayland" >&2
             exit 1
           fi
           
@@ -490,7 +517,7 @@ jobs:
   # --------------------------------------------------------
   release:
     needs: [setup, build]
-    if: ${{ !cancelled() && needs.setup.result == 'success' && needs.build.result == 'success' }}
+    if: ${{ !cancelled() && needs.setup.result == 'success' && needs.build.result == 'success' && inputs.release_mode != 'test' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -517,12 +544,13 @@ jobs:
           fi
           
       - name: Delete previous rootfs-dev rolling Release (full matrix build only)
-        if: ${{ inputs.build_target == 'all' || inputs.build_target == 'all-wayland' || inputs.build_target == 'all-niri-noctalia' }}
+        if: ${{ inputs.release_mode == 'overwrite-release' && (inputs.build_target == 'all' || inputs.build_target == 'all-wayland' || inputs.build_target == 'all-niri-noctalia') }}
         run: gh release delete rootfs-dev --repo "${{ github.repository }}" --yes --cleanup-tag || true
         env:
           GH_TOKEN: ${{ github.token }}
 
       - name: Update rootfs-dev rolling Release
+        if: ${{ inputs.release_mode == 'overwrite-release' }}
         uses: softprops/action-gh-release@v3
         with:
           tag_name: rootfs-dev
@@ -534,6 +562,7 @@ jobs:
             Build Time: ${{ needs.setup.outputs.build_date }}
             Build Target (User Specified): ${{ github.event.inputs.build_target }}
             Build ID: ${{ needs.setup.outputs.build_id }}
+            Release Mode: ${{ github.event.inputs.release_mode }}
 
             Build Options:
             - **Custom Username**: ${{ github.event.inputs.custom_username }}
@@ -555,7 +584,45 @@ jobs:
             - Development Tools Integration: ${{ github.event.inputs.enable_kfgj }}
             - Compression Tools Integration: ${{ github.event.inputs.enable_zip }}
             - Docker Integration: ${{ github.event.inputs.enable_docker }}
-            
+          draft: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Versioned Release
+        if: ${{ inputs.release_mode == 'release' }}
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ needs.setup.outputs.build_id }}
+          name: "Droidspaces RootFS ${{ needs.setup.outputs.build_id }} (${{ github.event.inputs.build_target }})"
+          prerelease: false
+          files: "release_assets/*"
+          body: |
+            Droidspaces RootFS Automated Build
+            Build Time: ${{ needs.setup.outputs.build_date }}
+            Build Target (User Specified): ${{ github.event.inputs.build_target }}
+            Build ID: ${{ needs.setup.outputs.build_id }}
+            Release Mode: ${{ github.event.inputs.release_mode }}
+
+            Build Options:
+            - **Custom Username**: ${{ github.event.inputs.custom_username }}
+            - **KDE Desktop**: ${{ github.event.inputs.build_KDE }}
+            - **KDE Auto-start**: ${{ github.event.inputs.build_KDE_plus }}
+            - **Wayland support**: ${{ needs.setup.outputs.wayland_enabled }}
+            - KDE Wayland package target: ${{ needs.setup.outputs.wayland_package_target || 'none' }}
+            - PulseAudio Audio Forwarding: ${{ needs.setup.outputs.pulseaudio_effective }}
+            - anland audio note: Wayland mode uses the built-in anland app audio, so PulseAudio is not needed
+            - nosnap: ${{ github.event.inputs.nosnap }}
+            - systemd 257 old-kernel compatibility: ${{ github.event.inputs.enable_systemd257 }}
+            - Use Chinese as Primary Language: ${{ github.event.inputs.enable_zh_tz }}
+            - Qualcomm Snapdragon GPU Support: ${{ github.event.inputs.enable_mesa }}
+            - Fix Snapdragon 8 Gen 2 Wayland display corruption: ${{ github.event.inputs.enable_8gen2_wayland }}
+            - Integrate TMOE: ${{ github.event.inputs.enable_tmoe }}
+            - Input Method fcitx5 Support: ${{ github.event.inputs.enable_srf }}
+            - Cross-architecture Support: ${{ github.event.inputs.enable_binfmt }}
+            - Container Hardware and Network Recognition Support: ${{ github.event.inputs.enable_yj }}
+            - Development Tools Integration: ${{ github.event.inputs.enable_kfgj }}
+            - Compression Tools Integration: ${{ github.event.inputs.enable_zip }}
+            - Docker Integration: ${{ github.event.inputs.enable_docker }}
           draft: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
