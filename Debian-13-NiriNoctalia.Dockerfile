@@ -120,7 +120,7 @@ RUN apt-get update && \
     # 字体
     fonts-noto-cjk fonts-noto-color-emoji \
     # 实用工具
-    gnome-terminal nautilus btop firefox papirus-icon-theme python3-pyqt6 qt6-wayland \
+    gnome-terminal nautilus btop firefox-esr papirus-icon-theme python3-pyqt6 qt6-wayland \
     # 主题工具
     lxappearance qt6ct \
     && apt-get autoremove -y && \
@@ -129,7 +129,8 @@ RUN apt-get update && \
 
 # 修复: 移除 GNOME Terminal & Nautilus desktop 文件的 OnlyShowIn
 RUN sed -i '/^OnlyShowIn=/d' /usr/share/applications/org.gnome.Terminal.desktop 2>/dev/null || true && \
-    sed -i '/^OnlyShowIn=/d' /usr/share/applications/org.gnome.Nautilus.desktop 2>/dev/null || true
+    sed -i '/^OnlyShowIn=/d' /usr/share/applications/org.gnome.Nautilus.desktop 2>/dev/null || true && \
+    ln -sf /usr/bin/firefox-esr /usr/bin/firefox
 
 # niri-settings: PyQt6 GUI 配置工具
 RUN git clone --depth=1 https://github.com/stefonarch/niri-settings /tmp/niri-settings && \
