@@ -33,7 +33,7 @@ RUN cargo build --release --bin niri && \
 
 # Stage 3: Download pre-built noctalia release (3 seconds)
 FROM alpine:latest AS noctalia-downloader
-ARG NOCTALIA_RELEASE_REPO=DinhQuangDoi/noctalia-arm64
+ARG NOCTALIA_RELEASE_REPO=dinhmaiphuong2025/noctalia
 ARG NOCTALIA_RELEASE_TAG=noctalia-arm64
 RUN apk add --no-cache curl tar ca-certificates
 RUN mkdir -p /out && \
